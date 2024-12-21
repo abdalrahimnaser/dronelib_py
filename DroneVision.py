@@ -1,10 +1,12 @@
 import cv2
 import numpy as np
 import time
-
+from threading import Thread,Event,Timer
+from DroneController import Drone
 class DroneFollower:
     def __init__(self, drone):
         self.drone = drone
+
         self.center_region = ((300, 220), (340, 260))  # Define a region in the center of the frame
 
         # Define thresholds for the object size (used for forward/backward movement)
@@ -13,11 +15,16 @@ class DroneFollower:
 
     def follow_object(self):
         cap = self.drone.get_video_feed()  # Get video feed from the drone camera
+        self.drone.take_off()
+        time.sleep(1)
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 print("Failed to grab frame.")
                 break
+
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+
 
             # Convert the frame to HSV for color detection
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -31,6 +38,8 @@ class DroneFollower:
 
             # Find contours of the object
             contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+            
 
             if contours:
                 # Get the largest contour (assuming the tracked object is the largest red object)
@@ -58,10 +67,12 @@ class DroneFollower:
                 threshold_x = 30
                 threshold_y = 30
 
+
                 # Drone control logic based on object position
                 if abs(error_x) > threshold_x:
                     if error_x > 0:
                         self.drone.move('left', speed=30)
+                        # print("i am here")
                     else:
                         self.drone.move('right', speed=30)
 
@@ -93,14 +104,12 @@ class DroneFollower:
         cap.release()
         cv2.destroyAllWindows()
 
-# # Usage:
-# drone = Drone()  # Assuming the Drone class from your provided API is used
-# drone.connect()  # Connect to the drone
+# Usage:
+drone = Drone()  # Assuming the Drone class from your provided API is used
+drone.connect()  # Connect to the drone
 
-# # Start video feed and follow the object
-# follower = DroneFollower(drone)
-# drone.start_video()  # Start video feed
-# follower.follow_object()  # Begin following
-
-# drone.stop_video()  # Stop video feed after following
-# drone.disconnect()  # Disconnect the drone
+# Start video feed and follow the object
+follower = DroneFollower(drone)
+follower.follow_object()  # Begin following
+time.sleep(2)
+drone.disconnect()  # Disconnect the drone

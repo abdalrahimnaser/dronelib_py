@@ -1,5 +1,5 @@
 
-##### try these [yours could differ, maight be a fix for the autoland]:
+################################ PROTOCOL ####################################
 #     1st byte – Header: 66
 #     2nd byte – Left/right movement (0-254, with 128 being neutral)
 #     3rd byte – Forward/backward movement (0-254, with 128 being neutral)
@@ -27,6 +27,7 @@ import cv2
 
 
 COMMAND_TAKE_OFF = 0x01
+COMMAND_LAND = 0x02
 COMMAND_CALIBRATE_GYRO = 0x80
 COMMAND_UNLOCK_MOTOR = 0x40
 
@@ -39,9 +40,6 @@ class Drone:
         self.enabled = False
         self.send_interval = None
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        self.stop_event = Event()
-        self.video_thread = Thread(target=self._start_video, args=(self.stop_event,))
 
         # Control values initialized
         self.throttle = 128
@@ -100,19 +98,21 @@ class Drone:
         self.current_command = 0
 
     # Drone actions
-    def take_off(self):
+    def take_off(self, wait):
         self._send_command(COMMAND_TAKE_OFF)
+        time.sleep(wait)
 
-    def land(self):
-        self._send_command(COMMAND_TAKE_OFF)
+    def land(self, wait):
+        self._send_command(COMMAND_LAND)
+        time.sleep(wait)
 
     def calibrate(self):
         self._send_command(COMMAND_CALIBRATE_GYRO)
-        time.sleep(2) # some delay for drone to repond, note you shouldn't adjust send_interval timer for 
-                      # this to avoid command overload.
+        time.sleep(2) # artificial delay
 
     def unlock_motor(self):
         self._send_command(COMMAND_UNLOCK_MOTOR)
+        time.sleep(2) # artificial delay
 
     # Converts a normalized speed (0 to 100) to the control range (128 to 254)
     def _convert_speed(self, speed):
@@ -135,7 +135,8 @@ class Drone:
 
     def _start_video(self):
         cap = self.get_video_feed()
-        while not self.stop_event.is_set():
+        # while not self.stop_event_camfeed.is_set():
+        while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 print("Failed to grab frame.")
@@ -155,8 +156,11 @@ class Drone:
         cv2.destroyAllWindows()
         
     def start_video(self):
+        self.stop_event = Event()
+        self.video_thread = Thread(target=self._start_video)
         self.video_thread.start()
-        time.sleep(2.5) # delay to allow the video to show up before any furhter control motion [e.g monitoring takeoff]
+        time.sleep(3) # delay to allow the video to show up before any furhter control motion [e.g monitoring takeoff]
+
 
     def stop_video(self):
         # Signal the video thread to stop and wait for it to finish
@@ -165,7 +169,7 @@ class Drone:
 
 
     # Move the drone in a specified direction with a given speed (0 to 100)
-    def move(self, direction, speed=50):
+    def move(self, direction, speed=50, wait = 0):
         speed = self._convert_speed(speed)
         if direction == 'forward':
             self.forward_backward = speed
@@ -179,6 +183,7 @@ class Drone:
             self.throttle = speed
         elif direction == 'down':
             self.throttle = 256 - speed
+        time.sleep(wait)
 
     # Stop the drone by resetting controls to neutral
     def stop(self):
@@ -188,13 +193,15 @@ class Drone:
         self.turn = 128
 
     # Rotate the drone (yaw) with a given speed
-    def rotate(self, direction, speed=50):
+    def rotate(self, direction, speed=50, wait = 0):
         speed = self._convert_speed(speed)
         if direction == 'left':
             self.turn = 256 - speed
         elif direction == 'right':
             self.turn = speed
+        time.sleep(wait)
 
     # Hover the drone by stopping movement, maintaining current position
-    def hover(self):
+    def hover(self, wait = 0):
         self.stop()
+        time.sleep(wait)
