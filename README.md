@@ -1,4 +1,4 @@
-# Support My Open Source Projects
+# Support My Work
 
 I am passionate about creating and publishing open-source projects. Your financial support would mean a lot and help me continue working on these projects. If you'd like to support me, please consider making a donation via PayPal:
 
