@@ -1,8 +1,4 @@
-# Support My Work
 
-I am passionate about creating and publishing open-source projects. Your financial support would mean a lot and help me continue working on these projects. If you'd like to support me, please consider making a donation via PayPal:
-
-[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue)](https://paypal.me/AbdalrahimNaser?country.x=GB&locale.x=en_GB)
 
 ---
 
